@@ -30,7 +30,7 @@ def init():
 	else:
 		err("Is an xtag repository already")
 
-def modify(modify_tags, args):
+def modify_tags(modify, args):
 	file = args[0]
 	tags = args[1:]
 	if not path.exists(file):
@@ -42,18 +42,17 @@ def modify(modify_tags, args):
 
 	if path.isfile(file):
 		file = path.abspath(file)
-		print(modify_tags.__name__, path.basename(file), "tags:", *tags, sep=' ')
-		print(basedir(), REPO_DIR)
+		print(modify.__name__, path.basename(file), "tags:", *tags, sep=' ')
 		os.chdir(path.join(basedir(), REPO_DIR))
-		modify_tags(file, tags)
+		modify(file, tags)
 	elif path.isdir(file):
 		if False: # TODO: option --recursive
 			for f in os.listdir(file):
-				modify_tags(path.join(file, f), tags)
+				modify(path.join(file, f), tags)
 		else:
-			err(file, " is a directory")
+			err(file, "is a directory")
 
-def add(file, tags):
+def add_tags(file, tags):
 	""" Add tags to file """
 	for tag in tags:
 		if not path.exists(tag):
@@ -62,7 +61,7 @@ def add(file, tags):
 		if not path.exists(f):
 			os.link(file, f)
 
-def remove(file, tags):
+def remove_tags(file, tags):
 	""" Remove tags from file """
 	for tag in tags:
 		f = path.join(tag, path.basename(file))
@@ -71,14 +70,13 @@ def remove(file, tags):
 		if os.listdir(tag) == []:
 			os.rmdir(tag)
 
-def set(file, tags):
+def set_tags(file, tags):
 	""" Set tags of file """
 	add(file, [tag for tag in tags if tag not in get_tags_by_file(file)])
 	remove(file, [tag for tag in get_tags_by_file(file) if tag not in tags])
 
 def list(tags):
 	""" List files having all passed tags """
-	os.chdir(path.join(basedir(), REPO_DIR))
 	files = get_files_by_tag(tags[0])
 	for t in tags[1:]:
 		files = [file for file in files if file in get_files_by_tag(t)] # wtf :D
@@ -86,22 +84,44 @@ def list(tags):
 
 def orphans():
 	""" Lists orphaned tags """
-	err("TODO: orphans")
+	tagfiles = [] # get all tag files
+	for root, dirs, files in os.walk(path.join(basedir(), REPO_DIR)):
+		tagfiles.extend(path.join(root, name) for name in files)
+	inodes = {} # get corresponding inodes
+	for tagfile in tagfiles:
+		stat = os.stat(tagfile)
+		if stat.st_nlink > 1:
+			inodes[stat.st_ino] = tagfile
+		else: # tag definitely orphaned
+			print(tagfile)
+	# check if inodes exist in repo (sigh)
+	for root, dirs, files in os.walk(basedir()):
+		if REPO_DIR in dirs:
+			dirs.remove(REPO_DIR)
+		# TODO workaround :\
+		for foo in {inode for inode in inodes.keys() if inode in [os.stat(path.join(root, name)).st_ino for name in files]}:
+			del inodes[foo]
+	# remaining inodes == orphaned tags
+	print(*inodes.values(), sep='\n')
+
 
 # -- main --
 commands = {
 	"init"    : lambda args: init(),
-	"add"     : lambda args: modify(add, args),
-	"remove"  : lambda args: modify(remove, args),
-	"set"	  : lambda args: modify(set, args),
+	"add"     : lambda args: modify_tags(add_tags, args),
+	"remove"  : lambda args: modify_tags(remove_tags, args),
+	"set"	  : lambda args: modify_tags(set_tags, args),
 	"list"    : lambda args: list(args),
 	"orphans" : lambda args: orphans(),
 }
-s = sys.argv[1]
+
+del sys.argv[0]
+
+s = sys.argv.pop(0)
 cmds = [c for c in commands.keys() if c.startswith(s)]
 if len(cmds) == 1:
-	commands[cmds[0]](sys.argv[2:])
+	commands[cmds[0]](sys.argv)
 elif len(cmds) == 0:
-	err(s, " is not a known command")
+	err(s, "is not a known command")
 else:
-	err(s, " is ambiguous: ", cmds)
+	err(s, "is ambiguous: ", cmds)
