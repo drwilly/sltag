@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os, os.path as path
 import sys
 
@@ -55,25 +56,25 @@ def modify_tags(modify, args):
 def add_tags(file, tags):
 	""" Add tags to file """
 	for tag in tags:
+		tagfile = path.join(tag, str(os.stat(file).st_ino))
 		if not path.exists(tag):
 			os.mkdir(tag)
-		f = path.join(tag, path.basename(file))
-		if not path.exists(f):
-			os.link(file, f)
+		if not path.exists(tagfile):
+			os.link(file, tagfile)
 
 def remove_tags(file, tags):
 	""" Remove tags from file """
 	for tag in tags:
-		f = path.join(tag, path.basename(file))
-		if path.exists(f):
-			os.unlink(f)
+		tagfile = path.join(tag, str(os.stat(file).st_ino))
+		if path.exists(tagfile):
+			os.unlink(tagfile)
 		if os.listdir(tag) == []:
 			os.rmdir(tag)
 
 def set_tags(file, tags):
 	""" Set tags of file """
-	add(file, [tag for tag in tags if tag not in get_tags_by_file(file)])
-	remove(file, [tag for tag in get_tags_by_file(file) if tag not in tags])
+	add_tags(file, [tag for tag in tags if tag not in get_tags_by_file(file)])
+	remove_tags(file, [tag for tag in get_tags_by_file(file) if tag not in tags])
 
 def list(tags):
 	""" List files having all passed tags """
