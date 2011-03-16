@@ -3,37 +3,44 @@ import os, os.path as path
 import sys
 
 REPO_DIR = ".xtag"
+__basedir = None
 
 def err(*msg):
 	print(*msg, file=sys.stderr)
 
 def basedir():
+	""" Return path to .xtag/ parent-dir """
+	global __basedir
+	if __basedir == None:
+		basedir = path.abspath(os.curdir)
+		while basedir != "/":
+			if path.exists(path.join(basedir, REPO_DIR)):
+				__basedir = basedir
+				break
+			basedir = path.dirname(basedir)
+	return __basedir
+
+def repodir():
 	""" Return path to .xtag/ repository-dir """
-	basedir = path.abspath(os.curdir)
-	while basedir != "/":
-		if path.exists(path.join(basedir, REPO_DIR)):
-			return basedir
-		basedir = path.dirname(basedir)
-	return None
+	return path.join(basedir(), REPO_DIR)
 
 def get_files_by_tag(tag):
-	os.chdir(path.join(basedir(), REPO_DIR))
-	return os.listdir(tag)
+	return os.listdir(path.join(repodir(), tag))
 
 def get_tags_by_file(file):
-	os.chdir(path.join(basedir(), REPO_DIR))
-	return [tag for tag in os.listdir(".") if path.isfile(path.join(tag, file))]
+	return [tag for tag in os.listdir(repodir()) if path.isfile(path.join(repodir(), tag, file))]
 
 def init():
 	""" Initialize xtag-repository """
-	if basedir() == None:
+	if repodir() == None:
 		os.mkdir(REPO_DIR, 0o744)
 	else:
 		err("Is an xtag repository already")
 
-def modify_tags(modify, args):
-	file = args[0]
-	tags = args[1:]
+def modify_tags(modify, file, tags):
+	if repodir() == None:
+		err("Not an xtag repository")
+		return
 	if not path.exists(file):
 		err("TODO: if not path.exists(file)")
 		return
@@ -43,19 +50,19 @@ def modify_tags(modify, args):
 
 	if path.isfile(file):
 		file = path.abspath(file)
-		print(modify.__name__, path.basename(file), "tags:", *tags, sep=' ')
-		os.chdir(path.join(basedir(), REPO_DIR))
+		print(modify.__name__, path.basename(file), "tags:", *tags, sep='\t')
 		modify(file, tags)
 	elif path.isdir(file):
-		if False: # TODO: option --recursive
+		if True: # TODO: option --recursive
 			for f in os.listdir(file):
-				modify(path.join(file, f), tags)
+				modify_tags(modify, path.join(file, f), tags)
 		else:
 			err(file, "is a directory")
 
 def add_tags(file, tags):
 	""" Add tags to file """
 	for tag in tags:
+		tag = path.join(repodir(), tag)
 		tagfile = path.join(tag, str(os.stat(file).st_ino))
 		if not path.exists(tag):
 			os.mkdir(tag)
@@ -65,6 +72,7 @@ def add_tags(file, tags):
 def remove_tags(file, tags):
 	""" Remove tags from file """
 	for tag in tags:
+		tag = path.join(repodir(), tag)
 		tagfile = path.join(tag, str(os.stat(file).st_ino))
 		if path.exists(tagfile):
 			os.unlink(tagfile)
@@ -109,14 +117,18 @@ def orphans():
 # -- main --
 commands = {
 	"init"    : lambda args: init(),
-	"add"     : lambda args: modify_tags(add_tags, args),
-	"remove"  : lambda args: modify_tags(remove_tags, args),
-	"set"	  : lambda args: modify_tags(set_tags, args),
+	"add"     : lambda args: modify_tags(add_tags, args[0], args[1:]),
+	"remove"  : lambda args: modify_tags(remove_tags, args[0], args[1:]),
+	"set"	  : lambda args: modify_tags(set_tags, args[0], args[1:]),
 	"list"    : lambda args: list(args),
 	"orphans" : lambda args: orphans(),
 }
 
 del sys.argv[0]
+
+if sys.argv == []:
+	print("TODO: No command")
+	sys.exit(1)
 
 s = sys.argv.pop(0)
 cmds = [c for c in commands.keys() if c.startswith(s)]
