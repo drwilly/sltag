@@ -70,7 +70,7 @@ def add_tags(file, tags):
 		if not path.exists(tag):
 			os.mkdir(tag)
 		if not path.exists(tagfile):
-			os.link(file, tagfile)
+			os.symlink(file, tagfile)
 
 def remove_tags(file, tags):
 	""" Remove tags from file """
@@ -92,29 +92,19 @@ def list(tags):
 	files = get_files_by_tag(tags[0])
 	for tag in tags[1:]:
 		files = [tagfile for tagfile in files if tagfile in get_files_by_tag(tag)] # wtf :D
-	print(*files, sep='\n')
+	print(*[os.readlink(path.join(repodir(), tags[0], tagfile)) for tagfile in files], sep='\n')
 
 def orphans():
 	""" Lists orphaned tags """
-	tagfiles = [] # get all tag files
-	for root, dirs, files in os.walk(path.join(basedir(), REPO_DIR)):
-		tagfiles.extend(path.join(root, name) for name in files)
-	inodes = {} # get corresponding inodes
-	for tagfile in tagfiles:
-		stat = os.stat(tagfile)
-		if stat.st_nlink > 1:
-			inodes[stat.st_ino] = tagfile
-		else: # tag definitely orphaned
-			print(tagfile)
-	# check if inodes exist in repo (sigh)
-	for root, dirs, files in os.walk(basedir()):
-		if REPO_DIR in dirs:
-			dirs.remove(REPO_DIR)
-		# TODO workaround :\
-		for foo in {inode for inode in inodes.keys() if inode in [os.stat(path.join(root, name)).st_ino for name in files]}:
-			del inodes[foo]
-	# remaining inodes == orphaned tags
-	print(*inodes.values(), sep='\n')
+	orphans = []
+	for tag in os.listdir(repodir()):
+		for tagfile in os.listdir(path.join(repodir(), tag)):
+			file = os.readlink(path.join(repodir(), tag, tagfile))
+			# broken symlink or different file (not same inode)
+			if not path.isfile(file) or os.stat(file).st_ino == int(tagfile):
+				orphans.append(path.join(tag, tagfile))
+
+	print(*orphans, sep='\n')
 
 
 # -- main --
