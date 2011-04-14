@@ -22,7 +22,10 @@ def basedir():
 
 def repodir():
 	""" Return path to .xtag/ repository-dir """
-	return path.join(basedir(), REPO_DIR)
+	if basedir() == None:
+		return None
+	else:
+		return path.join(basedir(), REPO_DIR)
 
 def get_files_by_tag(tag):
 	return os.listdir(path.join(repodir(), tag))
@@ -87,8 +90,8 @@ def set_tags(file, tags):
 def list(tags):
 	""" List files having all passed tags """
 	files = get_files_by_tag(tags[0])
-	for t in tags[1:]:
-		files = [file for file in files if file in get_files_by_tag(t)] # wtf :D
+	for tag in tags[1:]:
+		files = [tagfile for tagfile in files if tagfile in get_files_by_tag(tag)] # wtf :D
 	print(*files, sep='\n')
 
 def orphans():
