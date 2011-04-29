@@ -70,7 +70,10 @@ def remove_tags(files, tags):
 		tagdir = path.join(repodir(), tag)
 		for hash in hashes:
 			tagfile = path.join(tagdir, hash)
-			os.unlink(tagfile)
+			# this check is probably superfluous, but this is also
+			# the only place where serious harm could be done
+			if path.islink(tagfile):
+				os.unlink(tagfile)
 		try:
 			os.rmdir(tagdir)
 		except:
