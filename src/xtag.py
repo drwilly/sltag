@@ -97,12 +97,9 @@ def list(tags):
 
 def orphans():
 	""" Lists orphaned tags """
-	orphans = []
 	for tag in os.listdir(repodir()):
 		for tagfile in os.listdir(path.join(repodir(), tag)):
 			file = os.readlink(path.join(repodir(), tag, tagfile))
-			# broken symlink or different file (not same taghash)
-			if not path.isfile(file) or taghash(file) == tagfile:
-				orphans.append(path.join(tag, tagfile))
-
-	print(*orphans, sep='\n')
+			# broken symlink or different file (taghash differs)
+			if not path.isfile(file) or taghash(file) != tagfile:
+				print(path.join(tag, tagfile))
