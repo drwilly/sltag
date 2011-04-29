@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
 import os, os.path as path
 import sys
 
 REPO_DIR = ".xtag"
 __basedir = None
 
-def err(*msg):
-	print(*msg, file=sys.stderr)
+class XTagException(Exception):
+	def __init__(*msg):
+		Exception.__init__(msg)
 
 def basedir():
 	""" Return path to .xtag/ parent-dir """
@@ -38,18 +38,15 @@ def init():
 	if repodir() == None:
 		os.mkdir(REPO_DIR, 0o744)
 	else:
-		err("Is an xtag repository already")
+		raise XTagException("Is an xtag repository already")
 
 def modify_tags(modify, file, tags):
 	if repodir() == None:
-		err("Not an xtag repository")
-		return
+		raise XTagException("Not an xtag repository")
 	if not path.exists(file):
-		err("TODO: if not path.exists(file)")
-		return
+		raise XTagException("TODO: if not path.exists(file)")
 	if not len(tags) > 0:
-		err("TODO: if not len(tags) > 0")
-		return
+		raise XTagException("TODO: if not len(tags) > 0")
 
 	if path.isfile(file):
 		file = path.abspath(file)
@@ -60,7 +57,7 @@ def modify_tags(modify, file, tags):
 			for f in os.listdir(file):
 				modify_tags(modify, path.join(file, f), tags)
 		else:
-			err(file, "is a directory")
+			raise XTagException(file, "is a directory")
 
 def add_tags(file, tags):
 	""" Add tags to file """
@@ -105,29 +102,3 @@ def orphans():
 				orphans.append(path.join(tag, tagfile))
 
 	print(*orphans, sep='\n')
-
-
-# -- main --
-commands = {
-	"init"    : lambda args: init(),
-	"add"     : lambda args: modify_tags(add_tags, args[0], args[1:]),
-	"remove"  : lambda args: modify_tags(remove_tags, args[0], args[1:]),
-	"set"	  : lambda args: modify_tags(set_tags, args[0], args[1:]),
-	"list"    : lambda args: list(args),
-	"orphans" : lambda args: orphans(),
-}
-
-del sys.argv[0]
-
-if sys.argv == []:
-	print("TODO: No command")
-	sys.exit(1)
-
-s = sys.argv.pop(0)
-cmds = [c for c in commands.keys() if c.startswith(s)]
-if len(cmds) == 1:
-	commands[cmds[0]](sys.argv)
-elif len(cmds) == 0:
-	err(s, "is not a known command")
-else:
-	err(s, "is ambiguous: ", cmds)
