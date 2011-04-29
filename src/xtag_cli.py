@@ -18,7 +18,7 @@ def modify_tags(modify, files, tags):
 			i += 1
 		elif path.isdir(files[i]):
 			if True: # TODO: option --recursive
-				files[i:i+1] = os.listdir(files[i])
+				files[i:i+1] = [path.join(files[i], file) for file in os.listdir(files[i])]
 			else:
 				die(files[i], "is a directory")
 
