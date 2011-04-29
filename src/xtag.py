@@ -85,8 +85,9 @@ def remove_tags(file, tags):
 
 def set_tags(file, tags):
 	""" Set tags of file """
-	add_tags(file, [tag for tag in tags if tag not in get_tags_by_file(file)])
-	remove_tags(file, [tag for tag in get_tags_by_file(file) if tag not in tags])
+	current_tags = get_tags_by_file(file)
+	add_tags(file, [tag for tag in tags if tag not in current_tags])
+	remove_tags(file, [tag for tag in current_tags if tag not in tags])
 
 def list(tags):
 	""" List files having all passed tags """
