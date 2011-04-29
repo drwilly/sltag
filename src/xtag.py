@@ -18,20 +18,24 @@ def basedir():
 				__basedir = basedir
 				break
 			basedir = path.dirname(basedir)
+		else:
+			raise XTagException()
 	return __basedir
 
 def repodir():
 	""" Return path to .xtag/ repository-dir """
 	if basedir() == None:
 		return None
-	else:
-		return path.join(basedir(), REPO_DIR)
+	return path.join(basedir(), REPO_DIR)
 
 def get_files_by_tag(tag):
 	return os.listdir(path.join(repodir(), tag))
 
 def get_tags_by_file(file):
 	return [tag for tag in os.listdir(repodir()) if path.isfile(path.join(repodir(), tag, file))]
+
+def taghash(file):
+	return str(os.stat(file).st_ino)
 
 def init():
 	""" Initialize xtag-repository """
@@ -63,7 +67,7 @@ def add_tags(file, tags):
 	""" Add tags to file """
 	for tag in tags:
 		tag = path.join(repodir(), tag)
-		tagfile = path.join(tag, str(os.stat(file).st_ino))
+		tagfile = path.join(tag, taghash(file))
 		if not path.exists(tag):
 			os.mkdir(tag)
 		if not path.exists(tagfile):
@@ -73,7 +77,7 @@ def remove_tags(file, tags):
 	""" Remove tags from file """
 	for tag in tags:
 		tag = path.join(repodir(), tag)
-		tagfile = path.join(tag, str(os.stat(file).st_ino))
+		tagfile = path.join(tag, taghash(file))
 		if path.exists(tagfile):
 			os.unlink(tagfile)
 		if os.listdir(tag) == []:
@@ -97,8 +101,8 @@ def orphans():
 	for tag in os.listdir(repodir()):
 		for tagfile in os.listdir(path.join(repodir(), tag)):
 			file = os.readlink(path.join(repodir(), tag, tagfile))
-			# broken symlink or different file (not same inode)
-			if not path.isfile(file) or os.stat(file).st_ino == int(tagfile):
+			# broken symlink or different file (not same taghash)
+			if not path.isfile(file) or taghash(file) == tagfile:
 				orphans.append(path.join(tag, tagfile))
 
 	print(*orphans, sep='\n')
