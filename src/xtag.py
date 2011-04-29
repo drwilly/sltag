@@ -5,6 +5,8 @@ __basedir = None
 
 class XTagError(Exception):
 	pass
+class XTagRepositoryError(XTagError):
+	pass
 
 def basedir():
 	""" Return path to .xtag/ parent-dir """
@@ -38,26 +40,13 @@ def init():
 	if repodir() == None:
 		os.mkdir(REPO_DIR, 0o744)
 	else:
-		raise XTagError("Is an xtag repository already")
-
-def modify_tags(modify, files, tags):
-	if repodir() == None:
-		raise XTagError("Not an xtag repository")
-
-	for file in files:
-		if path.isfile(file):
-			#file = path.abspath(file)
-			print(modify.__name__, path.basename(file), "tags:", *tags, sep='\t')
-		elif path.isdir(file):
-			if True: # TODO: option --recursive
-				for f in os.listdir(file):
-					modify_tags(modify, path.join(file, f), tags)
-			else:
-				raise XTagError(file, "is a directory")
-	modify(files, tags)
+		raise XTagRepositoryError("Existing repository found at", repodir())
 
 def add_tags(files, tags):
 	""" Add tags to files """
+	if repodir() == None:
+		raise XTagRepositoryError()
+
 	files_and_hashes = [(file, taghash(file)) for file in files]
 	for tag in tags:
 		tagdir = path.join(repodir(), tag)
@@ -73,6 +62,9 @@ def add_tags(files, tags):
 
 def remove_tags(files, tags):
 	""" Remove tags from files """
+	if repodir() == None:
+		raise XTagRepositoryError()
+
 	hashes = [taghash(file) for file in files]
 	for tag in tags:
 		tagdir = path.join(repodir(), tag)
@@ -86,6 +78,9 @@ def remove_tags(files, tags):
 
 def set_tags(files, tags):
 	""" Set tags of files """
+	if repodir() == None:
+		raise XTagRepositoryError()
+
 	for file in files:
 		current_tags = get_tags_by_file(file)
 		add_tags(file, [tag for tag in tags if tag not in current_tags])
@@ -93,17 +88,23 @@ def set_tags(files, tags):
 
 def list(tags):
 	""" List tagfiles having all passed tags """
+	if repodir() == None:
+		raise XTagRepositoryError()
+
 	tagfiles = get_files_by_tag(tags[0])
 	for tag in tags[1:]:
 		tagfiles = [tagfile for tagfile in tagfiles if tagfile in get_files_by_tag(tag)]
 	for tagfile in tagfiles:
-		yield(path.abspath(os.readlink(path.join(repodir(), tags[0], tagfile))))
+		yield(path.realpath(path.join(repodir(), tags[0], tagfile)))
 
 def orphans():
 	""" Lists orphaned tags """
-	for tag in os.listdir(repodir()):
-		for tagfile in os.listdir(path.join(repodir(), tag)):
-			file = os.readlink(path.join(repodir(), tag, tagfile))
+	if repodir() == None:
+		raise XTagRepositoryError()
+
+	for tagdir in os.listdir(repodir()):
+		for tagfile in os.listdir(path.join(repodir(), tagdir)):
+			file = path.realpath(path.join(repodir(), tagdir, tagfile))
 			# broken symlink or different file (taghash differs)
 			if not path.isfile(file) or taghash(file) != tagfile:
-				yield(path.join(repodir(), tag, tagfile))
+				yield(path.join(repodir(), tagdir, tagfile))

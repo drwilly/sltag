@@ -1,15 +1,36 @@
 #!/usr/bin/env python3
 from xtag import *
+import os
 import sys
 
 def die(*msg):
 	print(*msg, file=sys.stderr)
 	sys.exit(1)
 
+def modify_tags(modify, files, tags):
+	if len(tags) == 0:
+		die("No tags")
+
+	i = 0
+	while i < len(files):
+		if path.isfile(files[i]):
+			print(modify.__name__, path.basename(files[i]), "tags:", *tags, sep='\t')
+			i += 1
+		elif path.isdir(files[i]):
+			if True: # TODO: option --recursive
+				files[i:i+1] = os.listdir(files[i])
+			else:
+				die(files[i], "is a directory")
+
+	if i == 0:
+		die("No files")
+
+	modify(files, tags)
+
 commands = {
 	"init"        : lambda args: init(),
-	"tag"         : lambda args: modify_tags(add_tags, args[1:], args[:1]),
-	"untag"       : lambda args: modify_tags(remove_tags, args[1:], args[:1]),
+	"tag-files"   : lambda args: modify_tags(add_tags, args[1:], args[:1]),
+	"untag-files" : lambda args: modify_tags(remove_tags, args[1:], args[:1]),
 	"add-tags"    : lambda args: modify_tags(add_tags, args[:1], args[1:]),
 	"remove-tags" : lambda args: modify_tags(remove_tags, args[:1], args[1:]),
 	"set-tags"    : lambda args: modify_tags(set_tags, args[:1], args[1:]),
