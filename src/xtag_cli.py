@@ -54,4 +54,4 @@ elif len(cmds) > 1:
 try:
 	commands[cmds[0]](sys.argv)
 except Exception as e:
-	die(*e.args)
+	die("Error:", *e.args)

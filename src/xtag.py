@@ -72,8 +72,9 @@ def remove_tags(files, tags):
 			tagfile = path.join(tagdir, hash)
 			# this check is probably superfluous, but this is also
 			# the only place where serious harm could be done
-			if path.islink(tagfile):
-				os.unlink(tagfile)
+			if not path.islink(tagfile):
+				raise XTagError(tagfile, "is not a symlink")
+			os.unlink(tagfile)
 		try:
 			os.rmdir(tagdir)
 		except:
