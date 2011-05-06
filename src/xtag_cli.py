@@ -36,6 +36,7 @@ commands = {
 	"set-tags"    : lambda args: modify_tags(set_tags, args[:1], args[1:]),
 	"list"        : lambda args: print(*list(args), sep='\n'),
 	"orphans"     : lambda args: print(*orphans(), sep='\n'),
+	"repository"  : lambda args: print(repodir()),
 	"help"        : lambda args: print(*commands.keys(), sep='\n'),
 }
 
