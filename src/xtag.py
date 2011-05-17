@@ -7,10 +7,16 @@ class XTagError(Exception):
 	pass
 class XTagRepositoryError(XTagError):
 	pass
+class XTagTagError(XTagError):
+	pass
 
-def basedir():
+def basedir(clearCache=False):
 	""" Return path to .xtag/ parent-dir """
 	global __basedir
+
+	if clearCache:
+		__basedir = None
+
 	if __basedir == None:
 		basedir = path.abspath(os.curdir)
 		while basedir != "/":
@@ -20,14 +26,20 @@ def basedir():
 			basedir = path.dirname(basedir)
 	return __basedir
 
-def repodir():
+def repodir(clearCache=False):
 	""" Return path to .xtag/ repository-dir """
-	if basedir() == None:
-		return None
-	return path.join(basedir(), REPO_DIR)
+	try:
+		return path.join(basedir(clearCache), REPO_DIR)
+	except TypeError: # raised when basedir() returns None
+		raise XTagRepositoryError()
 
 def get_files_by_tag(tag):
-	return os.listdir(path.join(repodir(), tag))
+	try:
+		return os.listdir(path.join(repodir(), tag))
+	except OSError as e:
+		if e.errno == 2:
+			raise XTagTagError("No such tag:", tag)
+		raise e
 
 def get_tags_by_file(file):
 	return [tag for tag in os.listdir(repodir()) if path.isfile(path.join(repodir(), tag, file))]
@@ -37,16 +49,13 @@ def taghash(file):
 
 def init():
 	""" Initialize xtag-repository """
-	if repodir() == None:
+	if basedir() == None:
 		os.mkdir(REPO_DIR, 0o744)
 	else:
 		raise XTagRepositoryError("Existing repository found at", repodir())
 
 def add_tags(files, tags):
 	""" Add tags to files """
-	if repodir() == None:
-		raise XTagRepositoryError()
-
 	files_and_hashes = [(file, taghash(file)) for file in files]
 	for tag in tags:
 		tagdir = path.join(repodir(), tag)
@@ -62,9 +71,6 @@ def add_tags(files, tags):
 
 def remove_tags(files, tags):
 	""" Remove tags from files """
-	if repodir() == None:
-		raise XTagRepositoryError()
-
 	hashes = [taghash(file) for file in files]
 	for tag in tags:
 		tagdir = path.join(repodir(), tag)
@@ -82,9 +88,6 @@ def remove_tags(files, tags):
 
 def set_tags(files, tags):
 	""" Set tags of files """
-	if repodir() == None:
-		raise XTagRepositoryError()
-
 	for file in files:
 		current_tags = get_tags_by_file(file)
 		add_tags(file, [tag for tag in tags if tag not in current_tags])
@@ -92,9 +95,6 @@ def set_tags(files, tags):
 
 def list(tags):
 	""" List tagfiles having all passed tags """
-	if repodir() == None:
-		raise XTagRepositoryError()
-
 	tagfiles = get_files_by_tag(tags[0])
 	for tag in tags[1:]:
 		tagfiles = [tagfile for tagfile in tagfiles if tagfile in get_files_by_tag(tag)]
@@ -103,9 +103,6 @@ def list(tags):
 
 def orphans():
 	""" Lists orphaned tags """
-	if repodir() == None:
-		raise XTagRepositoryError()
-
 	for tagdir in os.listdir(repodir()):
 		for tagfile in os.listdir(path.join(repodir(), tagdir)):
 			file = path.realpath(path.join(repodir(), tagdir, tagfile))
