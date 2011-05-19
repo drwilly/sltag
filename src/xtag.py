@@ -2,6 +2,7 @@ import os, os.path as path
 
 REPO_DIR = ".xtag"
 __basedir = None
+__repodir = None
 
 class XTagError(Exception):
 	pass
@@ -10,55 +11,60 @@ class XTagRepositoryError(XTagError):
 class XTagTagError(XTagError):
 	pass
 
-def basedir(clearCache=False):
+def get_basedir(clearCache=False):
 	""" Return path to .xtag/ parent-dir """
 	global __basedir
 
-	if clearCache:
+	if __basedir == None or clearCache:
 		__basedir = None
-
-	if __basedir == None:
-		basedir = path.abspath(os.curdir)
-		while basedir != "/":
-			if path.exists(path.join(basedir, REPO_DIR)):
-				__basedir = basedir
+		get_basedir = path.abspath(os.curdir)
+		while get_basedir != "/":
+			if path.exists(path.join(get_basedir, REPO_DIR)):
+				__basedir = get_basedir
 				break
-			basedir = path.dirname(basedir)
+			get_basedir = path.dirname(get_basedir)
 	return __basedir
 
-def repodir(clearCache=False):
+def get_repodir(clearCache=False):
 	""" Return path to .xtag/ repository-dir """
-	try:
-		return path.join(basedir(clearCache), REPO_DIR)
-	except TypeError: # raised when basedir() returns None
-		raise XTagRepositoryError()
+	global __repodir
+
+	if __repodir == None or clearCache:
+		__basedir = get_basedir(clearCache)
+		if __basedir == None:
+			raise XTagRepositoryError()
+		__repodir = path.join(__basedir, REPO_DIR)
+
+	return __repodir
 
 def get_files_by_tag(tag):
 	try:
-		return os.listdir(path.join(repodir(), tag))
+		return os.listdir(path.join(get_repodir(), tag))
 	except OSError as e:
 		if e.errno == 2:
 			raise XTagTagError("No such tag:", tag)
 		raise e
 
 def get_tags_by_file(file):
-	return [tag for tag in os.listdir(repodir()) if path.isfile(path.join(repodir(), tag, file))]
+	repodir = get_repodir()
+	return [tag for tag in os.listdir(repodir) if path.islink(path.join(repodir, tag, file))]
 
 def taghash(file):
 	return str(os.stat(file).st_ino)
 
 def init():
 	""" Initialize xtag-repository """
-	if basedir() == None:
+	if get_basedir() == None:
 		os.mkdir(REPO_DIR, 0o744)
 	else:
-		raise XTagRepositoryError("Existing repository found at", repodir())
+		raise XTagRepositoryError("Existing repository found at", get_repodir())
 
 def add_tags(files, tags):
 	""" Add tags to files """
+	repodir = get_repodir()
 	files_and_hashes = [(file, taghash(file)) for file in files]
 	for tag in tags:
-		tagdir = path.join(repodir(), tag)
+		tagdir = path.join(repodir, tag)
 		if not path.exists(tagdir):
 			os.mkdir(tagdir)
 		for file, hash in files_and_hashes:
@@ -66,14 +72,15 @@ def add_tags(files, tags):
 			tagfile = path.join(tagdir, hash)
 			try:
 				os.symlink(relfile, tagfile)
-			except:
+			except OSError:
 				pass
 
 def remove_tags(files, tags):
 	""" Remove tags from files """
+	repodir = get_repodir()
 	hashes = [taghash(file) for file in files]
 	for tag in tags:
-		tagdir = path.join(repodir(), tag)
+		tagdir = path.join(repodir, tag)
 		for hash in hashes:
 			tagfile = path.join(tagdir, hash)
 			# this check is probably superfluous, but this is also
@@ -83,7 +90,7 @@ def remove_tags(files, tags):
 			os.unlink(tagfile)
 		try:
 			os.rmdir(tagdir)
-		except:
+		except OSError:
 			pass
 
 def set_tags(files, tags):
@@ -95,17 +102,21 @@ def set_tags(files, tags):
 
 def list(tags):
 	""" List tagfiles having all passed tags """
-	tagfiles = get_files_by_tag(tags[0])
-	for tag in tags[1:]:
-		tagfiles = [tagfile for tagfile in tagfiles if tagfile in get_files_by_tag(tag)]
+	repodir = get_repodir()
+	firsttag = tags.pop()
+	tagfiles = set(get_files_by_tag(firsttag))
+	for tag in tags:
+		tagfiles &= set(get_files_by_tag(tag))
 	for tagfile in tagfiles:
-		yield(path.realpath(path.join(repodir(), tags[0], tagfile)))
+		yield(path.realpath(path.join(repodir, firsttag, tagfile)))
 
 def orphans():
 	""" Lists orphaned tags """
-	for tagdir in os.listdir(repodir()):
-		for tagfile in os.listdir(path.join(repodir(), tagdir)):
-			file = path.realpath(path.join(repodir(), tagdir, tagfile))
+	repodir = get_repodir()
+	for tagdir in os.listdir(repodir):
+		for tagfile in os.listdir(path.join(repodir, tagdir)):
+			tagfile_fullpath = path.join(repodir, tagdir, tagfile)
+			file = path.realpath(tagfile_fullpath)
 			# broken symlink or different file (taghash differs)
 			if not path.isfile(file) or taghash(file) != tagfile:
-				yield(path.join(repodir(), tagdir, tagfile))
+				yield(tagfile_fullpath)
