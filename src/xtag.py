@@ -14,27 +14,24 @@ class XTagTagError(XTagError):
 def get_basedir(clearCache=False):
 	""" Return path to .xtag/ parent-dir """
 	global __basedir
-
 	if __basedir == None or clearCache:
 		__basedir = None
-		get_basedir = path.abspath(os.curdir)
-		while get_basedir != "/":
-			if path.exists(path.join(get_basedir, REPO_DIR)):
-				__basedir = get_basedir
+		basedir = path.abspath(os.curdir)
+		while basedir != "/":
+			if path.exists(path.join(basedir, REPO_DIR)):
+				__basedir = basedir
 				break
-			get_basedir = path.dirname(get_basedir)
+			basedir = path.dirname(basedir)
 	return __basedir
 
 def get_repodir(clearCache=False):
 	""" Return path to .xtag/ repository-dir """
 	global __repodir
-
 	if __repodir == None or clearCache:
-		__basedir = get_basedir(clearCache)
-		if __basedir == None:
+		basedir = get_basedir(clearCache)
+		if basedir == None:
 			raise XTagRepositoryError()
-		__repodir = path.join(__basedir, REPO_DIR)
-
+		__repodir = path.join(basedir, REPO_DIR)
 	return __repodir
 
 def get_files_by_tag(tag):
@@ -47,7 +44,8 @@ def get_files_by_tag(tag):
 
 def get_tags_by_file(file):
 	repodir = get_repodir()
-	return [tag for tag in os.listdir(repodir) if path.islink(path.join(repodir, tag, file))]
+	hash = taghash(file)
+	return [tag for tag in os.listdir(repodir) if path.islink(path.join(repodir, tag, hash))]
 
 def taghash(file):
 	return str(os.stat(file).st_ino)
@@ -116,7 +114,7 @@ def orphans():
 	for tagdir in os.listdir(repodir):
 		for tagfile in os.listdir(path.join(repodir, tagdir)):
 			tagfile_fullpath = path.join(repodir, tagdir, tagfile)
-			file = path.realpath(tagfile_fullpath)
 			# broken symlink or different file (taghash differs)
-			if not path.isfile(file) or taghash(file) != tagfile:
+			# os.stat (path.isfile() and taghash()) follows symlinks
+			if not path.isfile(tagfile) or taghash(tagfile) != tagfile:
 				yield(tagfile_fullpath)
