@@ -1,18 +1,18 @@
 import os, os.path as path
 
-REPO_DIR = ".xtag"
+REPO_DIR = ".sltag"
 __basedir = None
 __repodir = None
 
-class XTagError(Exception):
+class SLTagError(Exception):
 	pass
-class XTagRepositoryError(XTagError):
+class SLTagRepositoryError(SLTagError):
 	pass
-class XTagTagError(XTagError):
+class SLTagTagError(SLTagError):
 	pass
 
 def get_basedir(clearCache=False):
-	""" Return path to .xtag/ parent-dir """
+	""" Return path to .sltag/ parent-dir """
 	global __basedir
 	if __basedir == None or clearCache:
 		__basedir = None
@@ -25,12 +25,12 @@ def get_basedir(clearCache=False):
 	return __basedir
 
 def get_repodir(clearCache=False):
-	""" Return path to .xtag/ repository-dir """
+	""" Return path to .sltag/ repository-dir """
 	global __repodir
 	if __repodir == None or clearCache:
 		basedir = get_basedir(clearCache)
 		if basedir == None:
-			raise XTagRepositoryError()
+			raise SLTagRepositoryError()
 		__repodir = path.join(basedir, REPO_DIR)
 	return __repodir
 
@@ -39,7 +39,7 @@ def get_files_by_tag(tag):
 		return os.listdir(path.join(get_repodir(), tag))
 	except OSError as e:
 		if e.errno == 2:
-			raise XTagTagError("No such tag:", tag)
+			raise SLTagTagError("No such tag:", tag)
 		raise e
 
 def get_tags_by_file(file):
@@ -51,11 +51,11 @@ def taghash(file):
 	return str(os.stat(file).st_ino)
 
 def init():
-	""" Initialize xtag-repository """
+	""" Initialize sltag-repository """
 	if get_basedir() == None:
 		os.mkdir(REPO_DIR, 0o744)
 	else:
-		raise XTagRepositoryError("Existing repository found at", get_repodir())
+		raise SLTagRepositoryError("Existing repository found at", get_repodir())
 
 def add_tags(files, tags):
 	""" Add tags to files """
@@ -84,7 +84,7 @@ def remove_tags(files, tags):
 			# this check is probably superfluous, but this is also
 			# the only place where serious harm could be done
 			if not path.islink(tagfile):
-				raise XTagError(tagfile, "is not a symlink")
+				raise SLTagError(tagfile, "is not a symlink")
 			os.unlink(tagfile)
 		try:
 			os.rmdir(tagdir)

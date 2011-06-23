@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import xtag
+import sltag
 
 import os
 import sys
@@ -29,15 +29,15 @@ def modify_tags(modify, files, tags):
 	modify(files, tags)
 
 commands = {
-	"init"        : lambda args: xtag.init(),
-	"tag-files"   : lambda args: modify_tags(xtag.add_tags, args[1:], args[:1]),
-	"untag-files" : lambda args: modify_tags(xtag.remove_tags, args[1:], args[:1]),
-	"add-tags"    : lambda args: modify_tags(xtag.add_tags, args[:1], args[1:]),
-	"remove-tags" : lambda args: modify_tags(xtag.remove_tags, args[:1], args[1:]),
-	"set-tags"    : lambda args: modify_tags(xtag.set_tags, args[:1], args[1:]),
-	"list"        : lambda args: print(*xtag.list(args), sep='\n'),
-	"orphans"     : lambda args: print(*xtag.orphans(), sep='\n'),
-	"repository"  : lambda args: print(xtag.get_repodir()),
+	"init"        : lambda args: sltag.init(),
+	"tag-files"   : lambda args: modify_tags(sltag.add_tags, args[1:], args[:1]),
+	"untag-files" : lambda args: modify_tags(sltag.remove_tags, args[1:], args[:1]),
+	"add-tags"    : lambda args: modify_tags(sltag.add_tags, args[:1], args[1:]),
+	"remove-tags" : lambda args: modify_tags(sltag.remove_tags, args[:1], args[1:]),
+	"set-tags"    : lambda args: modify_tags(sltag.set_tags, args[:1], args[1:]),
+	"list"        : lambda args: print(*sltag.list(args), sep='\n'),
+	"orphans"     : lambda args: print(*sltag.orphans(), sep='\n'),
+	"repository"  : lambda args: print(sltag.get_repodir()),
 	"help"        : lambda args: print(*commands.keys(), sep='\n'),
 }
 
