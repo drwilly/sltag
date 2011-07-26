@@ -36,6 +36,7 @@ commands = {
 	"remove-tags" : lambda args: modify_tags(sltag.remove_tags, args[:1], args[1:]),
 	"set-tags"    : lambda args: modify_tags(sltag.set_tags, args[:1], args[1:]),
 	"list"        : lambda args: print(*sltag.list(args), sep='\n'),
+	"tags"        : lambda args: print(*os.listdir(sltag.get_repodir()), sep='\t'),
 	"orphans"     : lambda args: print(*sltag.orphans(), sep='\n'),
 	"repository"  : lambda args: print(sltag.get_repodir()),
 	"help"        : lambda args: print(*commands.keys(), sep='\n'),
@@ -46,12 +47,12 @@ del sys.argv[0]
 if sys.argv == []:
 	die("TODO: No command")
 
-s = sys.argv.pop(0)
-cmds = [c for c in commands.keys() if c.startswith(s)]
+cmdstring = sys.argv.pop(0)
+cmds = [c for c in commands.keys() if c.startswith(cmdstring)]
 if len(cmds) == 0:
-	die(s, "is not a known command")
+	die(cmdstring, "is not a known command")
 elif len(cmds) > 1:
-	die(s, "is ambiguous:", cmds)
+	die(cmdstring, "is ambiguous:", cmds)
 
 try:
 	commands[cmds[0]](sys.argv)
