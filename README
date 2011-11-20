@@ -1,0 +1,20 @@
+SLTag
+
+SLTag is a utility to assign arbitrary semantic tags to local files.
+Unlike other tools I've found, SLTag is extremely simplistic. Instead of using a database, SLTag stores tags in .sltag repositories.
+A repository contains a folder for each tag which in turn contains symlinks pointing to the tagged files. Example:
+dir/
+|-- .sltag/
+|   |-- tag1/
+|   |   |-- 05168 -> ../../file1
+|   |   `-- 24545 -> ../../file2
+|   `-- tag2/
+|       |-- 24545 -> ../../file2
+|       `-- 58434 -> ../../file3
+|-- file1
+|-- file2
+`-- file3
+Here, file1 would have been tagged 'tag1', file2 'tag1' and 'tag2' and file3 would have been tagged 'tag2'.
+The file's inode number is used as the symlink name so that broken symlinks caused by renaming or moving a tagged file can be fixed.
+Querying tags is effectively just listing directory contents and requires no lookup at all. As such programs can, to a limited extend, use .sltag repositories without any kind of client.
+Only querying for a combination of tags requires a bit of logic, which is done by SLTag.
