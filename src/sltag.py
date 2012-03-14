@@ -106,7 +106,8 @@ def list(tags):
 	for tag in tags:
 		tagfiles &= set(get_files_by_tag(tag))
 	for tagfile in tagfiles:
-		yield(path.realpath(path.join(repodir, firsttag, tagfile)))
+		file = path.realpath(path.join(repodir, firsttag, tagfile))
+		yield(path.relpath(file))
 
 def orphans():
 	""" Lists orphaned tags """
