@@ -14,14 +14,17 @@ def modify_tags(modify, files, tags):
 
 	i = 0
 	while i < len(files):
-		if os.path.isfile(files[i]):
-			print(modify.__name__, os.path.basename(files[i]), "tags:", *tags, sep='\t')
-			i += 1
-		elif os.path.isdir(files[i]):
+		if os.path.isdir(files[i]):
 			if True: # TODO: option --recursive
 				files[i:i+1] = [os.path.join(files[i], file) for file in os.listdir(files[i])]
+				continue
 			else:
 				die(files[i], "is a directory")
+		elif os.path.isfile(files[i]):
+			print(modify.__name__, os.path.basename(files[i]), "tags:", *tags, sep='\t')
+		else:
+			die("No such file or directory:", files[i])
+		i += 1
 
 	if i == 0:
 		die("No files")
