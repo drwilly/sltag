@@ -117,5 +117,5 @@ def orphans():
 			tagfile_fullpath = path.join(repodir, tagdir, tagfile)
 			# broken symlink or different file (taghash differs)
 			# os.stat (path.isfile() and taghash()) follows symlinks
-			if not path.isfile(tagfile) or taghash(tagfile) != tagfile:
+			if not path.isfile(tagfile_fullpath) or taghash(tagfile_fullpath) != tagfile:
 				yield(tagfile_fullpath)
