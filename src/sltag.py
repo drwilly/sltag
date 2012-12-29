@@ -95,8 +95,8 @@ def set_tags(files, tags):
 	""" Set tags of files """
 	for file in files:
 		current_tags = get_tags_by_file(file)
-		add_tags(file, [tag for tag in tags if tag not in current_tags])
-		remove_tags(file, [tag for tag in current_tags if tag not in tags])
+		add_tags([file], (tag for tag in tags if tag not in current_tags))
+		remove_tags([file], (tag for tag in current_tags if tag not in tags))
 
 def list(tags):
 	""" List tagfiles having all passed tags """
