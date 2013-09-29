@@ -101,12 +101,10 @@ def set_tags(files, tags):
 def list(tags):
 	""" List tagfiles having all passed tags """
 	repodir = get_repodir()
-	firsttag = tags.pop()
-	tagfiles = set(get_files_by_tag(firsttag))
-	for tag in tags:
-		tagfiles &= set(get_files_by_tag(tag))
+	tagfiles = set.intersection(*(set(get_files_by_tag(tag)) for tag in tags))
+	basepath = path.join(repodir, tags[0])
 	for tagfile in tagfiles:
-		file = path.realpath(path.join(repodir, firsttag, tagfile))
+		file = path.realpath(path.join(basepath, tagfile))
 		yield(path.relpath(file))
 
 def orphans():
